@@ -12,11 +12,17 @@ void start_client(CommunicationContext *comm)
 
     while (1)
     {
-        printf("Enter option and string:\n");
+        printf("*******************************************************************************************************\n");
+        printf("* This application will take a flag and then a string from your input,                                *\n");
+        printf("* send it to a server for processing, re-arrange parts of the string and then return it to you below. *\n");
+        printf("*******************************************************************************************************\n");
+        printf("Enter a flag (this is optional) the press enter.\n");
 
         // Read flag
         fgets(flag, BUFFER_SIZE, stdin);
         flag[strcspn(flag, "\n")] = '\0'; // Remove trailing newline
+
+        printf("Now enter a string and press enter.\n");
 
         // Read input
         fgets(input, BUFFER_SIZE, stdin);

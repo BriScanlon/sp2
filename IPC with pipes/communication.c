@@ -15,11 +15,6 @@ int receive_message(CommunicationContext *comm, char *buffer, size_t size)
     if (bytesRead > 0)
     {
         buffer[bytesRead] = '\0';                           // Null-terminate the received data
-        printf("receive_message: Received '%s'\n", buffer); // Debug log
-    }
-    else
-    {
-        printf("receive_message: No data received or error occurred\n"); // Debug log
     }
     return bytesRead;
 }

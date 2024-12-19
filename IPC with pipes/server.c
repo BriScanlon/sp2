@@ -13,7 +13,6 @@ void start_server(CommunicationContext *comm)
     while (1)
     {
         // Receive flag
-        printf("Server: Waiting for flag...\n");
         if (receive_message(comm, flag, BUFFER_SIZE) <= 0)
         {
             perror("Failed to receive flag");
@@ -25,21 +24,15 @@ void start_server(CommunicationContext *comm)
             flag[0] = '\0';
         }
 
-        printf("Server: Received flag='%s'\n", flag);
-
         // Receive input
-        printf("Server: Waiting for input...\n");
         if (receive_message(comm, input, BUFFER_SIZE) <= 0)
         {
             perror("Failed to receive input");
             break; // Exit if no more data or pipe closed
         }
-        printf("Server: Received input='%s'\n", input);
 
-        printf("Server: Calling swapPartsUsingExecf...\n");
         swapPartsUsingExecf(flag, input, output);
 
-        printf("Server: Sending output='%s'\n", output);
         if (send_message(comm, output, strlen(output) + 1) <= 0)
         {
             perror("Failed to send output");

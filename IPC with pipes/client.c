@@ -25,7 +25,6 @@ void start_client(CommunicationContext *comm)
         input[strcspn(input, "\n")] = '\0'; // Remove trailing newline
 
         // Send flag
-        printf("Client: Sending flag='%s'\n", flag);
         if (send_message(comm, flag, strlen(flag) + 1) <= 0)
         {
             perror("Failed to send flag");
@@ -36,7 +35,6 @@ void start_client(CommunicationContext *comm)
         sleep(1);
 
         // Send input
-        printf("Client: Sending input='%s'\n", input);
         if (send_message(comm, input, strlen(input) + 1) <= 0)
         {
             perror("Failed to send input");

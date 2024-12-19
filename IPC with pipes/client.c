@@ -1,6 +1,4 @@
-// client.c
 #include "communication.h"
-#include "pipe_comm.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -31,7 +29,6 @@ void start_client(CommunicationContext *comm)
             break;
         }
 
-        fsync(((int *)comm->context)[1]); // Flush write end
         sleep(1);
 
         // Send input

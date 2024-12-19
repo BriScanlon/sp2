@@ -31,8 +31,10 @@ void start_server(CommunicationContext *comm)
             break; // Exit if no more data or pipe closed
         }
 
+        // Process input
         swapPartsUsingExecf(flag, input, output);
 
+        // Send response
         if (send_message(comm, output, strlen(output) + 1) <= 0)
         {
             perror("Failed to send output");

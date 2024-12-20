@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "sem_comm.h"
+#include "msg_comm.h"
 
 void start_client(CommunicationContext *comm)
 {

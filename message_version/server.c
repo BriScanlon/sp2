@@ -3,7 +3,7 @@
 #include <string.h>
 #include "communication.h"
 #include "swap_parts_exec.h"
-#include "sem_comm.h"
+#include "msg_comm.h"
 
 void start_server(CommunicationContext *comm)
 {

@@ -11,34 +11,21 @@ int main(int argc, char **argv)
     char flag[10];
     char message[MAX_SIZE];
 
+    struct mq_attr attributes;
+    attributes.mq_flags = 0;
+    attributes.mq_maxmsg = 10;
+    attributes.mq_msgsize = MAX_SIZE;
+    attributes.mq_curmsgs = 0;
+
     // Open the message queue for writing
-    mq = mq_open(QUEUE_NAME, O_WRONLY);
+    mq = mq_open(QUEUE_NAME, O_CREAT | O_WRONLY, 0644, &attributes);
     CHECK((mqd_t)-1 != mq);
 
-    printf("Send to server (enter \"exit\" for flag to stop):\n");
+    printf("Send to server (please type in \"exit\" to exit the program):\n");
 
     do
     {
-        // Get the flag from the user
-        printf("Flag (e.g., -f): ");
-        fflush(stdout);
-        memset(flag, 0, sizeof(flag));
-        fgets(flag, sizeof(flag), stdin);
-
-        // Remove trailing newline
-        flag[strcspn(flag, "\n")] = '\0';
-
-        // Stop if the user enters "exit"
-        if (strncmp(flag, "exit", 4) == 0)
-        {
-            break;
-        }
-
-        // Send the flag to the server
-        snprintf(buffer, sizeof(buffer), "FLAG:%s", flag);
-        CHECK(0 <= mq_send(mq, buffer, MAX_SIZE, 0));
-
-        // Get the message from the user (can be blank if flag is -h)
+        sleep(1);
         printf("Message: ");
         fflush(stdout);
         memset(message, 0, sizeof(message));
@@ -48,9 +35,12 @@ int main(int argc, char **argv)
         message[strcspn(message, "\n")] = '\0';
 
         // Send the message to the server
-        snprintf(buffer, sizeof(buffer), "MESSAGE:%.1015s", message);
-        CHECK(0 <= mq_send(mq, buffer, MAX_SIZE, 0));
+        mq_send(mq, message, strlen(message) + 1, 0);
 
+        if (strncmp(message, "exit", 4) == 0)
+        {
+            break;
+        }
     } while (1);
 
     // Cleanup

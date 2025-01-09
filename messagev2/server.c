@@ -6,37 +6,12 @@
 #include <mqueue.h>
 #include "mq_common.h"
 
-void process_message(const char *flag, const char *message, char *response)
+void process_message( const char *message)
 {
     char command[MAX_SIZE + 50];
     FILE *fp;
 
-    // Handle specific cases for command construction
-    if (strcmp(flag, "-h") == 0)
-    {
-        // `-h` flag: Ignore the message and display help
-        snprintf(command, sizeof(command), "./swapParts %s", flag);
-    }
-    else if (strlen(flag) > 0 && strlen(message) > 0)
-    {
-        // Both flag and message are provided
-        snprintf(command, sizeof(command), "./swapParts %s \"%s\"", flag, message);
-    }
-    else if (strlen(flag) > 0)
-    {
-        // Flag only
-        snprintf(command, sizeof(command), "./swapParts %s", flag);
-    }
-    else if (strlen(message) > 0)
-    {
-        // Message only
-        snprintf(command, sizeof(command), "./swapParts \"%s\"", message);
-    }
-    else
-    {
-        // No flag, no message: Call `swapParts` with no arguments
-        snprintf(command, sizeof(command), "./swapParts");
-    }
+    snprintf(command, sizeof(command), "./swapParts %s", message);
 
     // Debug log for the command
     printf("Executing command: %s\n", command);
@@ -45,19 +20,26 @@ void process_message(const char *flag, const char *message, char *response)
     fp = popen(command, "r");
     if (fp == NULL)
     {
-        snprintf(response, MAX_SIZE, "Error executing swapParts");
         return;
     }
 
+    char result[MAX_SIZE + 50] = {0};
+    int total_len = 0;
     // Read the command output
-    if (fgets(response, MAX_SIZE, fp) == NULL)
-    {
-        snprintf(response, MAX_SIZE, "No response from swapParts");
+    while(fgets(command, sizeof(command), fp) != NULL) {
+        if (total_len + strlen(command) < MAX_SIZE + 49) {
+            strcat(result, command);
+            total_len += strlen(command);
+        } else {
+            strncat(result, command, MAX_SIZE + 50 - total_len - 1);
+            break;
+        }
     }
-    pclose(fp);
+
+    int status = pclose(fp);
 
     // Remove newline from the response
-    response[strcspn(response, "\n")] = '\0';
+    printf("Result: %s", result);
 }
 
 int main(int argc, char **argv)
@@ -96,31 +78,13 @@ int main(int argc, char **argv)
         {
             must_stop = 1;
         }
-        else if (strncmp(buffer, "FLAG:", 5) == 0)
-        {
-            // Extract the flag
-            strncpy(flag, buffer + 5, sizeof(flag) - 1);
-            flag[strcspn(flag, "\n")] = '\0'; // Trim newline
-            printf("Received flag: %s\n", flag);
-        }
-        else if (strncmp(buffer, "MESSAGE:", 8) == 0)
-        {
-            // Extract the message
-            strncpy(message, buffer + 8, sizeof(message) - 1);
-            message[strcspn(message, "\n")] = '\0'; // Trim newline
-            printf("Received message: %s\n", message);
-        }
-
-        // Process if both flag and message are ready
-        if (strlen(flag) > 0 && (strlen(message) > 0 || strcmp(flag, "-h") == 0))
-        {
-            process_message(flag, message, response);
-            printf("Processed: %s\n", response);
-
+	    else {
+            strncpy(message, buffer, sizeof(message) - 1);
+            process_message(buffer);
             // Reset state after processing
             memset(flag, 0, sizeof(flag));
             memset(message, 0, sizeof(message));
-        }
+	    }
     } while (!must_stop);
 
     // Cleanup

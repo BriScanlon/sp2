@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-// Prints the usage options available to the user
+// Prints the usage options available to the user test
 void printUsage() {
     printf("Usage: program [options] <string>\n");
     printf("Options:\n");

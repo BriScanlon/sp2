@@ -8,14 +8,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define SHMSZ 1024 // Shared memory size
-#define SEM_NAME "ipc_semaphore"
+#define SHMSZ 2048       // Increased size to handle larger strings
+char SEM_NAME[] = "vik"; // Semaphore name
 
 int main()
 {
+    char input_data[SHMSZ], flag[64], input_string[1024], result[SHMSZ];
     int shmid;
     key_t key = 1000; // Shared memory key
-    char *shm, *s;
+    char *shm;
     sem_t *mutex;
 
     // Create and initialize the semaphore
@@ -45,69 +46,79 @@ int main()
 
     while (1)
     {
-        // Wait for client data
+        // Wait for client input
+        sem_wait(mutex);
         if (*shm == '\0')
-        {
+        { // No new data
+            sem_post(mutex);
             sleep(1);
             continue;
         }
 
-        sem_wait(mutex);
-
-        // Read client input
-        char client_data[SHMSZ];
-        strncpy(client_data, shm, SHMSZ);
-
-        // Reset shared memory to avoid stale data
-        *shm = '\0';
-
+        // Copy client data from shared memory
+        strncpy(input_data, shm, SHMSZ);
+        *shm = '\0'; // Clear shared memory to avoid reprocessing old data
         sem_post(mutex);
 
-        // Parse the input data
-        char flag[10], input_string[SHMSZ];
-        sscanf(client_data, "%[^|]|%s", flag, input_string);
-        printf("Server: Received flag='%s', string='%s'\n", flag, input_string);
-
-        // Process the input using the `swapParts` binary
-        char command[SHMSZ];
-        snprintf(command, SHMSZ, "./swapParts %s \"%s\"", flag, input_string);
-        printf("Server: Executing command: %s\n", command);
-
-        FILE *fp = popen(command, "r");
-        if (fp == NULL)
+        // Parse client input
+        if (sscanf(input_data, "%63[^|]|%1023[^\n]", flag, input_string) != 2)
         {
-            perror("Server: Failed to execute swapParts");
+            fprintf(stderr, "Server: Invalid input format.\n");
             continue;
         }
 
-        char result[SHMSZ];
-        if (fgets(result, SHMSZ, fp) == NULL)
+        // Debug logging
+        printf("Server: Received flag='%s', string='%s'\n", flag, input_string);
+
+        // Sanitize inputs
+        if (strlen(flag) > 50 || strlen(input_string) > 500)
         {
-            perror("Server: Error reading swapParts output");
-            strcpy(result, "Error processing input");
+            fprintf(stderr, "Server: Input exceeds allowed length.\n");
+            continue;
         }
-        pclose(fp);
+
+        // Construct command for `swapParts`
+        char command[SHMSZ];
+        if (snprintf(command, sizeof(command), "./swapParts '%s' '%s'", flag, input_string) >= sizeof(command))
+        {
+            fprintf(stderr, "Server: Command exceeds buffer size. Truncating input.\n");
+            continue;
+        }
+
+        // Execute command
+        FILE *fp = popen(command, "r");
+        if (fp == NULL)
+        {
+            perror("Server: Error running swapParts");
+            snprintf(result, sizeof(result), "Error running swapParts");
+        }
+        else
+        {
+            if (fgets(result, sizeof(result), fp) == NULL)
+            {
+                perror("Server: No output from swapParts");
+                snprintf(result, sizeof(result), "No output from swapParts");
+            }
+            pclose(fp);
+        }
 
         // Send the result back to the client
         sem_wait(mutex);
-
-        snprintf(shm, SHMSZ, "*%s", result); // Prefix '*' indicates the response is ready
-
+        if (snprintf(shm, SHMSZ, "*%s", result) >= SHMSZ)
+        {
+            fprintf(stderr, "Server: Result exceeds shared memory size. Truncating output.\n");
+        }
         sem_post(mutex);
 
-        printf("Server: Response sent to client: %s\n", result);
+        printf("Server: Sent result: %s\n", result);
     }
 
-    // Detach and clean up shared memory
+    // Clean up
     if (shmdt(shm) == -1)
     {
         perror("Server: Failure in shmdt");
-        exit(EXIT_FAILURE);
     }
-
     shmctl(shmid, IPC_RMID, 0);
-
-    // Unlink the semaphore
     sem_close(mutex);
     sem_unlink(SEM_NAME);
 
